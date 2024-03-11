@@ -1,0 +1,17 @@
+type Author {
+  id: ID!
+  nom: String!
+  prenom: String!
+}
+
+type Query {
+  authors: [Author!]!
+  author(id: ID!): Author!
+  researchAuthor(query: String): [Author!]
+}
+
+type Mutation {
+  createAuthor(nom: String, prenom: String): Author!
+  #updateAuthor(id: ID!, nom: String!, prenom: String!): Author!
+  #deleteAuthor(id: ID!): String
+}

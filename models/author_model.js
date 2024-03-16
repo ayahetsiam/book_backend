@@ -1,72 +1,50 @@
 // author_model.js
 const db = require("../config/database_connection");
-const fsPromises = require("fs").promises;
-const path = require("path");
-const authorProvider = require("./author_provider");
+const authorCollection = db.collection("author");
 class AuthorModel {
   constructor() {}
 
   async getAuthors() {
-    console.log("ama");
-    console.log(db);
-    const bookCollection = db.collection("author");
-    console.log(bookCollection);
-    // Récupérer tous les documents de la collection
-    const authors = await bookCollection.get();
+    const query = await db.query("FOR author IN author RETURN author");
+    const authors = query.all();
     return authors;
   }
 
-  getAuthorById(id) {
-    const author = authorProvider.filter((a) => a.id == id);
-    return author[0];
+  async getAuthorByKey(key) {
+    return await authorCollection.document(key);
   }
 
-  researchAuthor(query) {
-    const authors = authorProvider.filter((a) => {
+  async researchAuthor(query, authors) {
+    const researchauthors = await authors.filter((a) => {
       return a.nom.includes(query) || a.prenom.includes(query);
     });
-    return authors;
+    return researchauthors;
   }
 
   async createAuthor(nom, prenom) {
-    const tableLength = authorProvider.length;
-    const id = tableLength === 0 ? 1 : tableLength + 1; // Utiliser +1 ici plutôt que l'opérateur d'incrémentation postfixe
-    console.log(tableLength);
-    console.log(id);
-    const author = { id: id, nom: nom, prenom: prenom };
-    try {
-      const providerPath = path.join(__dirname, "", "author_provider.js");
-      const newProviderdata = [...authorProvider, author];
-      try {
-        await fsPromises.writeFile(
-          providerPath,
-          "const dataAuthor = " +
-            JSON.stringify(newProviderdata) +
-            ";\nmodule.exports = dataAuthor"
-        );
-      } catch (err) {
-        console.error("Erreur d'écriture :", err);
-        throw err; // Propager l'erreur vers l'appelant
+    const author = { nom: nom, prenom: prenom };
+    const result = await authorCollection.save(author);
+    return this.getAuthorByKey(result._key);
+  }
+
+  async updateAuthor(key, newNom, newPrenom) {
+    const newAuthor = await authorCollection.update(
+      key,
+      {
+        nom: newNom,
+        prenom: newPrenom,
+      },
+      {
+        returnNew: true,
       }
-    } catch (err) {
-      console.error("Erreur de creation :", err);
-    }
-    return author;
+    );
+
+    return newAuthor.new;
   }
 
-  async updateAuthor(id, nom, prenom) {
-    const oldAuthor = await this.getAuthorById(id);
-    const newAuthor = { id: id, nom: nom, prenom: prenom };
-    authorProvider[oldAuthor] = newAuthor;
-    return newAuthor;
-  }
-
-  async deleteAuthor(id) {
-    const deletedAuthor = await this.getAuthorById(id);
-    authorProvider.pop(deletedAuthor);
-    return {
-      error: "suppression ok",
-    };
+  async deleteAuthor(key) {
+    await authorCollection.remove(key);
+    return "ok";
   }
 }
 

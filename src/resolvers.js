@@ -1,17 +1,44 @@
 // resolvers.js
-const authorModel = require("../models/author_model");
+const authorController = require("../controllers/author_controller");
+const bookController = require("../controllers/book_controller");
+const writtenController = require("../controllers/written_controller");
 
 const resolvers = {
   Query: {
-    authors: () => authorModel.getAuthors(),
-    author: (_, { id }) => authorModel.getAuthorById(id),
-    researchAuthor: (_, { query }) => authorModel.researchAuthor(query),
+    //author
+    authors: () => authorController.getAuthors(),
+    author: (_, { key }) => authorController.getAuthorByKey(key),
+    researchAuthor: (_, { query }) => authorController.researchAuthor(query),
+
+    //book
+    books: () => bookController.getBooks(),
+    book: (_, { key }) => bookController.getBookByKey(key),
+    researchBook: (_, { query }) => bookController.researchBook(query),
+
+    //writting book relation
+    bookWritten: () => writtenController.getWrittens(),
+    book: (_, { key }) => bookController.getBookByKey(key),
+    researchBook: (_, { query }) => bookController.researchBook(query),
+    //bookbyid: (_, { book, author }) => writtenController.isCorrect(book, author),
   },
   Mutation: {
-    createAuthor: (_, { nom, prenom }) => authorModel.createAuthor(nom, prenom),
-    //updateAuthor: (_, { id, nom, prenom }) =>
-    //authorModel.updateAuthor(id, nom, prenom),
-    //deleteAuthor: (_, { id }) => authorModel.deleteAuthor(id),
+    //author
+    createAuthor: (_, { nom, prenom }) =>
+      authorController.createAuthor(nom, prenom),
+    updateAuthor: (_, { key, nom, prenom }) =>
+      authorController.updateAuthor(key, nom, prenom),
+    deleteAuthor: (_, { key }) => authorController.deleteAuthor(key),
+
+    //book
+    createBook: (_, { isbn, title, oeuvre }) =>
+      bookController.createBook(isbn, title, oeuvre),
+    updateBook: (_, { key, title, oeuvre }) =>
+      bookController.updateBook(key, title, oeuvre),
+    deleteBook: (_, { key }) => bookController.deleteBook(key),
+
+    //relation between them:writtenBy
+    createWritten: (_, { book, author }) =>
+      writtenController.createWritten(book, author),
   },
 };
 

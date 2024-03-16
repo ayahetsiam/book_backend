@@ -1,17 +1,49 @@
+#Author
 type Author {
-  id: ID!
   nom: String!
   prenom: String!
 }
 
+#book
+type Book {
+  ISBN: ID!
+  title: String!
+  oeuvre: String!
+}
+
+#written
+type Iswritten {
+  author: Author
+  book: Book
+  writtenAt: String
+}
+
 type Query {
-  authors: [Author!]!
-  author(id: ID!): Author!
-  researchAuthor(query: String): [Author!]
+  #author
+  authors: [Author]
+  author(key: ID!): Author
+  researchAuthor(query: String): [Author]
+
+  #book
+  books: [Book]
+  book(key: ID): Book
+  researchBook(query: String): [Book]
+
+  #written
+  bookWritten: [Iswritten]
 }
 
 type Mutation {
+  #Auteur
   createAuthor(nom: String, prenom: String): Author!
-  #updateAuthor(id: ID!, nom: String!, prenom: String!): Author!
-  #deleteAuthor(id: ID!): String
+  updateAuthor(key: ID!, nom: String!, prenom: String!): Author!
+  deleteAuthor(key: ID!): String
+
+  #book
+  createBook(isbn: String, title: String, oeuvre: String): Book!
+  updateBook(key: ID, title: String, oeuvre: String): Book!
+  deleteBook(key: ID!): String
+
+  #writtenBy
+  createWritten(book_id: ID, author_id: ID): Iswritten
 }

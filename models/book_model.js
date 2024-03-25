@@ -1,11 +1,11 @@
 const db = require("../config/database_connection");
-const bookCollection = db.collection("book");
+const bookCollection = db.collection("books");
 
 class BookModel {
   constructor() {}
 
   async getBooks() {
-    const query = await db.query("FOR book IN book RETURN book");
+    const query = await db.query("FOR book IN books RETURN book");
     return query.all();
   }
 
@@ -13,44 +13,43 @@ class BookModel {
     return await bookCollection.document(key);
   }
 
-  async getBookById(id) {
-    const query = db.query(`
-    FOR book IN book
-    FILTER book._id == ${id}
-    RETURN book
-  `);
-
-    return await db.query(query);
-  }
-
-  async researchBook(query) {
-    const books = await this.getBooks();
-    return books.filter(
-      (b) => b.oeuvre.includes(query) || b.title.includes(query)
+  async getBookByISBN(isbn) {
+    const query = await db.query(
+      `FOR book IN books FILTER book.ISBN == "${isbn}" RETURN book`
     );
+    const result = await query.next();
+    return result;
   }
 
-  async createBook(isdn, oeuvre, title) {
-    a;
-    const book = { ISDN: isdn, title: title, oeuvre: oeuvre };
-    const insertion = await bookCollection.save(book);
-    const newbook = await bookCollection.document(insertion._key);
-    return newbook;
-  }
-
-  async createBook(isdn, title, oeuvre) {
-    const book = { ISDN: isdn, title: title, oeuvre: oeuvre };
-    const insertion = await bookCollection.save(book);
-    const newbook = await bookCollection.document(insertion._key);
-    return newbook;
-  }
-
-  async updateBook(key, title, oeuvre) {
-    const update = await bookCollection.update(
-      key,
-      { title: title, oeuvre: oeuvre },
-      { returnNew: true }
+  async getBookbyAuthor(author_id) {
+    const query = await db.query(
+      `FOR book IN books FILTER book.author_id == "${author_id}" RETURN book`
     );
+    return query.all();
+  }
+  async getBooksWrittenAt(date) {
+  const query = await db.query(
+      `FOR book IN books FILTER book.author_id LIKE "%${date}%" RETURN book`
+    );
+    return query.all();
+}
+  async researchBook(researchQuery) {
+    const query = await db.query(
+      `FOR book IN books FILTER book.title LIKE '%${researchQuery}%' OR book.oeuvre LIKE '%${researchQuery}%' OR book.ISDN LIKE '%${researchQuery}%' RETURN book`
+    );
+    return query.all();
+  }
+
+  async createBook(book) {
+    const insertion = await bookCollection.save(book, { returnNew: true });
+    return insertion.new;
+  }
+
+  async updateBook(key, updatedata) {
+    const update = await bookCollection.update(key, updatedata, {
+      returnNew: true,
+    });
+    console.log(update.new);
     return update.new;
   }
 

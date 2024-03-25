@@ -2,7 +2,7 @@ const { Database } = require("arangojs");
 
 const db = new Database({
   url: "http://localhost:8529/",
-  databaseName: "bookDB",
+  databaseName: "livreDB",
   auth: {
     username: "root",
     password: "study",

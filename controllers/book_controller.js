@@ -2,13 +2,15 @@
  * but: controller les actions crud sur un auteur
  *      et captiver les erreurs systemes
  */
+
 const bookModel = require("../models/book_model");
+const authorModel = require("../models/author_model");
+const authorController = require("./author_controller");
 
 class BookController {
   constructor() {}
 
   async getBooks() {
-    //let books = null;
     try {
       const books = await bookModel.getBooks();
       return books;
@@ -17,106 +19,176 @@ class BookController {
         "Erreur lors de la récupération des libres: " + error.message
       );
     }
-    /*if (books.length === 0) {
-      throw new Error("Aucun livre");
-    }*/
   }
 
   async getBookByKey(key) {
     this.validateKey(key);
-    const book = await bookModel.getBookByKey(key);
-    if (book === null) {
-      throw new Error("Aucun livre trouvé");
+    try {
+      return await bookModel.getBookByKey(key);
+    } catch (error) {
+      throw JSON.stringify(error);
     }
-    return book;
   }
 
-  async getBookById(id) {
-    if (id === "") {
-      throw new Error("L'id n'est pas vailidé");
+  async getBookByISBN(isbn) {
+    try {
+      return await bookModel.getBookByISBN(isbn);
+    } catch (error) {
+      throw JSON.stringify(error);
     }
-    const books = await this.getBooks();
-    const book = books.find((book) => book._id == id);
-    if (book == null) {
-      throw new Error("Aucun livre trouvé");
+  }
+
+  async getBookByAuthor(author_id) {
+    this.validateKey(author_id);
+    await checkAuthorExists(author_id);
+    try {
+      return bookModel.getBookbyAuthor(author_id);
+    } catch (err) {
+      console.error("Erreur de récuperation : " + err);
+      throw err;
     }
-    return book;
+  }
+
+  getBooksWrittenAt(date) {
+    if (date !== "") {
+      try {
+        return bookModel.getBooksWrittenAt(date);
+      } catch (err) {
+        console.error("Erreur de récuperation : " + err);
+        throw err;
+      }
+    }
   }
 
   async researchBook(query) {
-    if (query === "" || isNaN(parseInt(query))) {
+    query = query.trim();
+    if (query === "" || !isNaN(parseInt(query))) {
       throw new Error("La requête n'est pas valide");
     }
-    const books = await this.getBooks();
-    const results = await bookModel.researchBook(query, books);
+    const results = await bookModel.researchBook(query);
     return results;
   }
 
-  async createBook(isbn, title, oeuvre) {
-    if (
-      isbn === "" ||
-      isNaN(parseInt(isbn)) ||
-      !this.isCorrect(title, oeuvre)
-    ) {
-      throw new Error("Les valeurs des champs sont incorrectes");
-    }
-    if (await this.isIsbnExist(isbn)) {
+  async createBook(isbn, title, oeuvre, page, author_id) {
+    isbn = isbn.trim();
+    title = title.trim();
+    oeuvre = oeuvre.trim();
+    this.validateField(isbn.trim(), title.trim(), oeuvre, page);
+    const existingBook = await this.getBookByISBN(isbn);
+    if (existingBook) {
       throw new Error("Ce livre existe déjà!");
     }
+    if (author_id !== "") {
+      let author;
+      try {
+        author = await getAuthorByKey(author_id);
+      } catch {
+        author = null;
+      }
+      if (!author) {
+        throw new Error("Cet auteur n'existe pas!");
+      }
+    } else {
+      throw new Error("la valeur champ book est vide!");
+    }
+    const date = new Date();
+    const writtenAt = date.toUTCString();
+    console.log(writtenAt);
     try {
-      return await bookModel.createBook(isbn, title, oeuvre);
+      const book = {
+        ISBN: isbn,
+        title: title,
+        oeuvre: oeuvre,
+        page: page,
+        author_id: author_id,
+        writtenAt: writtenAt,
+      };
+      return await bookModel.createBook(book);
     } catch (err) {
       console.error("Erreur lors de la création du livre : " + err.message);
-      throw err; // Re-lance l'erreur pour la gestion par le code appelant
+      throw err;
     }
   }
 
-  async updateBook(key, title, oeuvre) {
+  async updateBook(key, title, oeuvre, page) {
     this.validateKey(key);
-    if (!this.isCorrect(title, oeuvre)) {
-      throw new Error("Les valeurs des champs sont incorrectes");
+    await this.checkBookExists(key);
+    let updatedata = {};
+    if (title) {
+      if (!this.isCorrect(title)) {
+        throw new Error("la valeur du title est incorrecte");
+      }
+      updatedata.title = title;
     }
+    if (oeuvre) {
+      if (!this.isCorrect(oeuvre)) {
+        throw new Error("la valeur de l'oeuvre est incorrecte");
+      }
+      updatedata.oeuvre = oeuvre;
+    }
+    if (page) {
+      if (page === "" || isNaN(parseInt(page))) {
+        throw new Error("la valeur de page est incorrecte");
+      }
+      updatedata.page = page;
+    }
+
     try {
-      return await bookModel.updateBook(key, title, oeuvre);
+      return await bookModel.updateBook(key, updatedata);
     } catch (err) {
       console.error("Erreur lors de la mise à jour : " + err.message);
-      throw err; // Re-lance l'erreur pour la gestion par le code appelant
+      throw err;
     }
   }
 
   async deleteBook(key) {
     this.validateKey(key);
+    await this.checkBookExists(key);
+    console.log(8);
     try {
       return await bookModel.deleteBook(key);
     } catch (err) {
       console.error("Erreur de suppression : " + err.message);
-      throw err; // Re-lance l'erreur pour la gestion par le code appelant
+      throw err;
     }
   }
 
-  isCorrect(title, oeuvre) {
-    return (
-      title !== "" &&
-      oeuvre !== "" &&
-      isNaN(parseInt(title)) &&
-      isNaN(parseInt(oeuvre))
-    );
+  isCorrect(valeur) {
+    return valeur !== "" && isNaN(parseInt(valeur));
   }
 
-  async isIsbnExist(isbn) {
-    const books = await this.getBooks();
-    return books.some((book) => book.isbn === isbn);
+  validateField(isbn, title, oeuvre, page) {
+    if (isbn === "") {
+      throw new Error("la valeur du ISBN est incorrecte");
+    }
+    if (!this.isCorrect(title)) {
+      throw new Error("la valeur du champ title est incorrecte");
+    }
+    if (!this.isCorrect(oeuvre)) {
+      throw new Error("la valeur du champ oeuvre est incorrecte");
+    }
+    if (page === "" || isNaN(page)) {
+      throw new Error("la valeur du champ page est incorrecte");
+    }
   }
 
-  async validateKey(key) {
+  validateKey(key) {
     if (key === "" && isNaN(parseInt(key))) {
       throw new Error("la clé n'est pas valide");
     }
   }
 
-  async checkBookExists(id) {
-    const books = await this.getBooks();
-    return books.some((book) => book._id == id);
+  async checkBookExists(key) {
+    let book;
+    try {
+      book = await bookModel.getBookByKey(key);
+    } catch {
+      book = null;
+    }
+    if (!book) {
+      throw new Error("le livre n'existe pas");
+    }
+    return book;
   }
 }
 

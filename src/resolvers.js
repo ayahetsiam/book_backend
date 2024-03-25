@@ -1,7 +1,6 @@
 // resolvers.js
 const authorController = require("../controllers/author_controller");
 const bookController = require("../controllers/book_controller");
-const writtenController = require("../controllers/written_controller");
 
 const resolvers = {
   Query: {
@@ -15,12 +14,14 @@ const resolvers = {
     book: (_, { key }) => bookController.getBookByKey(key),
     researchBook: (_, { query }) => bookController.researchBook(query),
 
-    //writting book relation
-    bookWritten: () => writtenController.getWrittens(),
-    book: (_, { key }) => bookController.getBookByKey(key),
-    researchBook: (_, { query }) => bookController.researchBook(query),
-    //bookbyid: (_, { book, author }) => writtenController.isCorrect(book, author),
+    authorsBooks: (_, { author_id }) =>
+      bookController.getBooksByAuthor(author_id),
+    booksAuthor: (_, { book_id }) => authorController.getBookAuthor(book_id),
+
+    bookisbn: (_, { isbn }) =>
+      require("../models/book_model").default.getBookByISBN(isbn),
   },
+
   Mutation: {
     //author
     createAuthor: (_, { nom, prenom }) =>
@@ -30,15 +31,11 @@ const resolvers = {
     deleteAuthor: (_, { key }) => authorController.deleteAuthor(key),
 
     //book
-    createBook: (_, { isbn, title, oeuvre }) =>
-      bookController.createBook(isbn, title, oeuvre),
-    updateBook: (_, { key, title, oeuvre }) =>
-      bookController.updateBook(key, title, oeuvre),
+    createBook: (_, { isbn, title, oeuvre, page, author_id }) =>
+      bookController.createBook(isbn, title, oeuvre, page, author_id),
+    updateBook: (_, { key, title, oeuvre, page }) =>
+      bookController.updateBook(key, title, oeuvre, page),
     deleteBook: (_, { key }) => bookController.deleteBook(key),
-
-    //relation between them:writtenBy
-    createWritten: (_, { book, author }) =>
-      writtenController.createWritten(book, author),
   },
 };
 

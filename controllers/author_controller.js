@@ -3,16 +3,14 @@
  *      et captiver les erreurs systemes
  */
 const authorModel = require("../models/author_model");
-
+const bookModel = require("../models/book_model");
+const bookController = require("./book_controller");
 class AuthorController {
   constructor() {}
 
   async getAuthors() {
     try {
       const authors = await authorModel.getAuthors();
-      if (authors.length === 0) {
-        throw new Error("Aucun auteur trouvé");
-      }
       return authors;
     } catch (error) {
       console.error(
@@ -23,51 +21,54 @@ class AuthorController {
   }
 
   async getAuthorByKey(key) {
+    this.validateKey(key);
     try {
       const author = await authorModel.getAuthorByKey(key);
-      if (!author) {
-        throw new Error("Aucun auteur trouvé");
-      }
       return author;
     } catch (err) {
       console.error("Erreur de récupération : " + err.message);
-      throw err;
+      throw err.message;
     }
   }
 
-  async getAuthorById(id) {
-    if (id === "") {
-      throw new Error("L'id n'est pas vailidé");
-    }
-    const authors = await this.getAuthors();
-    const author = authors.find((author) => author._id == id);
-    if (author == null) {
-      throw new Error("Aucun auteur trouvé");
-    }
-    return author;
+  async getBookAuthor(book_id) {
+    this.validateKey(book_id);
+    const book = bookController.checkBookExists(book_id);
+    return this.getAuthorByKey(book.author_id);
   }
 
   async researchAuthor(query) {
-    if (query !== "" && !isNaN(parseInt(query))) {
+    if (query !== "" && isNaN(parseInt(query))) {
       try {
-        const authors = await this.getAuthors();
-        return await authorModel.researchAuthor(query, authors);
+        const researchAuthorResult = await authorModel.researchAuthor(query);
+        if (researchAuthorResult.length === 0) {
+          throw new Error("Aucun livre n'est trouvé");
+        }
+        return researchAuthorResult;
       } catch (err) {
         console.error(
           "Erreur lors de la recherche de l'auteur : " + err.message
         );
         throw err;
       }
+    } else {
+      console.error("query non valide");
+      throw new Error("query non valide");
     }
   }
 
   async createAuthor(nom, prenom) {
-    if (!this.isCorrect(nom, prenom)) {
-    } else {
-      throw new Error("Les valeurs des champs sont incorrectes");
+    nom = nom.trim();
+    prenom = prenom.trim();
+    if (!this.isCorrect(nom)) {
+      throw new Error("la valeur du champ nom est incorrecte");
+    }
+    if (!this.isCorrect(prenom)) {
+      throw new Error("la valeur du champ prenom est incorrecte");
     }
     try {
-      return await authorModel.createAuthor(nom, prenom);
+      const author = { nom: nom, prenom: prenom };
+      return await authorModel.createAuthor(author);
     } catch (err) {
       console.error("Erreur lors de la création de l'auteur : " + err.message);
       throw err;
@@ -75,11 +76,23 @@ class AuthorController {
   }
 
   async updateAuthor(key, nom, prenom) {
-    if (!this.isCorrect(nom, prenom)) {
-      throw new Error("Les valeurs des champs sont incorrectes");
+    this.validateKey(key);
+    await this.checkAuthorExists(key);
+    let update = { nom: nom, prenom: prenom };
+    if (!nom) {
+      update = { prenom: prenom };
+    }
+    if (!prenom) {
+      update = { nom: nom };
+    }
+    if (!this.isCorrect(nom)) {
+      throw new Error("la valeur du champ nom est incorrecte");
+    }
+    if (!this.isCorrect(prenom)) {
+      throw new Error("la valeur du champ prenom est incorrecte");
     }
     try {
-      return await authorModel.updateAuthor(key, nom, prenom);
+      return await authorModel.updateAuthor(key, update);
     } catch (err) {
       console.error("Erreur du modèle lors de la mise à jour: " + err.message);
       throw err;
@@ -87,6 +100,17 @@ class AuthorController {
   }
 
   async deleteAuthor(key) {
+    this.validateKey(key);
+    const resultat = await this.checkAuthorExists(key);
+    if (resultat === null) {
+      throw new Error("L'auteur n'existe pas!");
+    }
+    const authors = await bookController.getBookByAuthor(key);
+    if (Array.isArray(authors) && authors.length !== 0) {
+      throw new Error(
+        "Suppression impossible! Cet auteur est lié à au moins un livre"
+      );
+    }
     try {
       return await authorModel.deleteAuthor(key);
     } catch (err) {
@@ -95,18 +119,27 @@ class AuthorController {
     }
   }
 
-  isCorrect(nom, prenom) {
-    return (
-      nom !== "" &&
-      prenom !== "" &&
-      isNaN(parseInt(nom)) &&
-      isNaN(parseInt(prenom))
-    );
+  validateKey(key) {
+    if (key === "") {
+      throw new Error("la clé n'est pas valide!");
+    }
   }
 
-  async checkAuthorExists(id) {
-    const authors = await this.getAuthors();
-    return authors.some((author) => author._id === id);
+  isCorrect(value) {
+    return value !== "" && isNaN(parseInt(value));
+  }
+
+  async checkAuthorExists(key) {
+    let author;
+    try {
+      author = await authorModel.getAuthorByKey(key);
+    } catch {
+      author = null;
+    }
+    if (!author) {
+      throw new Error("l'auteur n'existe pas");
+    }
+    return author;
   }
 }
 

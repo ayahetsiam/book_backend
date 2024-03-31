@@ -51,23 +51,20 @@ class AuthorController {
         );
         throw err;
       }
-    } else {
-      console.error("query non valide");
-      throw new Error("query non valide");
     }
   }
 
-  async createAuthor(nom, prenom) {
-    nom = nom.trim();
-    prenom = prenom.trim();
-    if (!this.isCorrect(nom)) {
+  async createAuthor(name, firstName) {
+    name = name.trim();
+    firstName = firstName.trim();
+    if (!this.isCorrect(name)) {
       throw new Error("la valeur du champ nom est incorrecte");
     }
-    if (!this.isCorrect(prenom)) {
+    if (!this.isCorrect(firstName)) {
       throw new Error("la valeur du champ prenom est incorrecte");
     }
     try {
-      const author = { nom: nom, prenom: prenom };
+      const author = { name: name, fistName: fistName };
       return await authorModel.createAuthor(author);
     } catch (err) {
       console.error("Erreur lors de la création de l'auteur : " + err.message);
@@ -75,21 +72,21 @@ class AuthorController {
     }
   }
 
-  async updateAuthor(key, nom, prenom) {
+  async updateAuthor(key, name, fistName) {
     this.validateKey(key);
     await this.checkAuthorExists(key);
-    let update = { nom: nom, prenom: prenom };
-    if (!nom) {
-      update = { prenom: prenom };
+    let update = { name: name, fistName: fistName };
+    if (!name) {
+      update = { fistName: fistName };
     }
-    if (!prenom) {
-      update = { nom: nom };
+    if (!fistName) {
+      update = { name: name };
     }
-    if (!this.isCorrect(nom)) {
+    if (!this.isCorrect(name)) {
       throw new Error("la valeur du champ nom est incorrecte");
     }
-    if (!this.isCorrect(prenom)) {
-      throw new Error("la valeur du champ prenom est incorrecte");
+    if (!this.isCorrect(fistName)) {
+      throw new Error("la valeur du champ prenoms est incorrecte");
     }
     try {
       return await authorModel.updateAuthor(key, update);

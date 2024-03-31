@@ -69,11 +69,11 @@ class BookController {
     return results;
   }
 
-  async createBook(isbn, title, oeuvre, page, author_id) {
+  async createBook(isbn, title, artwork, page, author_id) {
     isbn = isbn.trim();
     title = title.trim();
-    oeuvre = oeuvre.trim();
-    this.validateField(isbn.trim(), title.trim(), oeuvre, page);
+    artwork = artwork.trim();
+    this.validateField(isbn.trim(), title.trim(), artwork, page);
     const existingBook = await this.getBookByISBN(isbn);
     if (existingBook) {
       throw new Error("Ce livre existe déjà!");
@@ -98,7 +98,7 @@ class BookController {
       const book = {
         ISBN: isbn,
         title: title,
-        oeuvre: oeuvre,
+        artwork: artwork,
         page: page,
         author_id: author_id,
         writtenAt: writtenAt,
@@ -110,7 +110,7 @@ class BookController {
     }
   }
 
-  async updateBook(key, title, oeuvre, page) {
+  async updateBook(key, title, artwork, page) {
     this.validateKey(key);
     await this.checkBookExists(key);
     let updatedata = {};
@@ -120,11 +120,11 @@ class BookController {
       }
       updatedata.title = title;
     }
-    if (oeuvre) {
-      if (!this.isCorrect(oeuvre)) {
+    if (artwork) {
+      if (!this.isCorrect(artwork)) {
         throw new Error("la valeur de l'oeuvre est incorrecte");
       }
-      updatedata.oeuvre = oeuvre;
+      updatedata.artwork = artwork;
     }
     if (page) {
       if (page === "" || isNaN(parseInt(page))) {
@@ -157,14 +157,14 @@ class BookController {
     return valeur !== "" && isNaN(parseInt(valeur));
   }
 
-  validateField(isbn, title, oeuvre, page) {
+  validateField(isbn, title, artwork, page) {
     if (isbn === "") {
       throw new Error("la valeur du ISBN est incorrecte");
     }
     if (!this.isCorrect(title)) {
       throw new Error("la valeur du champ title est incorrecte");
     }
-    if (!this.isCorrect(oeuvre)) {
+    if (!this.isCorrect(artwork)) {
       throw new Error("la valeur du champ oeuvre est incorrecte");
     }
     if (page === "" || isNaN(page)) {

@@ -16,7 +16,7 @@ class AuthorModel {
 
   async researchAuthor(researchQuery) {
     const query = await db.query(
-      `FOR author IN authors FILTER author.nom LIKE '%${researchQuery}%' OR author.prenom LIKE '%${researchQuery}%' RETURN author`
+      `FOR author IN authors FILTER author.name LIKE '%${researchQuery}%' OR author.firstName LIKE '%${researchQuery}%' RETURN author`
     );
     return query.all();
   }

@@ -35,7 +35,7 @@ class BookModel {
 }
   async researchBook(researchQuery) {
     const query = await db.query(
-      `FOR book IN books FILTER book.title LIKE '%${researchQuery}%' OR book.oeuvre LIKE '%${researchQuery}%' OR book.ISDN LIKE '%${researchQuery}%' RETURN book`
+      `FOR book IN books FILTER book.title LIKE '%${researchQuery}%' OR book.artwork LIKE '%${researchQuery}%' OR book.ISDN LIKE '%${researchQuery}%' RETURN book`
     );
     return query.all();
   }

@@ -1,8 +1,8 @@
 #Author
 type Author {
   _id: ID!
-  nom: String!
-  prenom: String!
+  name: String!
+  firstName: String!
   #books: [Book]
 }
 
@@ -11,7 +11,7 @@ type Book {
   _id: ID!
   ISBN: ID!
   title: String!
-  oeuvre: String!
+  artwork: String!
   page: Int!
   author_id: String!
   writtenAt: String!
@@ -36,19 +36,19 @@ type Query {
 
 type Mutation {
   #Auteur
-  createAuthor(nom: String!, prenom: String!): Author!
-  updateAuthor(key: ID!, nom: String, prenom: String): Author!
+  createAuthor(name: String!, firstName: String!): Author!
+  updateAuthor(key: ID!, name: String, firstName: String): Author!
   deleteAuthor(key: ID!): String!
 
   #book
   createBook(
     isbn: String!
     title: String!
-    oeuvre: String!
+    artwork: String!
     page: Int!
     author_id: String!
   ): Book!
 
-  updateBook(key: ID!, title: String, oeuvre: String, page: Int): Book!
+  updateBook(key: ID!, title: String, artwork: String, page: Int): Book!
   deleteBook(key: ID!): String!
 }

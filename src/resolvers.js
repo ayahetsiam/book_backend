@@ -24,10 +24,10 @@ const resolvers = {
 
   Mutation: {
     //author
-    createAuthor: (_, { nom, prenom }) =>
-      authorController.createAuthor(nom, prenom),
-    updateAuthor: (_, { key, nom, prenom }) =>
-      authorController.updateAuthor(key, nom, prenom),
+    createAuthor: (_, { name, firstName }) =>
+      authorController.createAuthor(name, firstName),
+    updateAuthor: (_, { key, name, firstName }) =>
+      authorController.updateAuthor(key, name, firstName),
     deleteAuthor: (_, { key }) => authorController.deleteAuthor(key),
 
     //book

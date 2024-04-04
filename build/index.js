@@ -127,8 +127,6 @@ module.exports = db;
  *      et captiver les erreurs systemes
  */
 const authorModel = __webpack_require__(/*! ../models/author_model */ "./models/author_model.js");
-const bookModel = __webpack_require__(/*! ../models/book_model */ "./models/book_model.js");
-const bookController = __webpack_require__(/*! ./book_controller */ "./controllers/book_controller.js");
 class AuthorController {
   constructor() {}
   async getAuthors() {
@@ -146,15 +144,20 @@ class AuthorController {
       const author = await authorModel.getAuthorByKey(key);
       return author;
     } catch (err) {
-      console.error("Erreur de récupération : " + err.message);
-      throw err.message;
+      throw err;
     }
   }
-  async getBookAuthor(book_id) {
+
+  /*async getBookAuthor(book_id) {
     this.validateKey(book_id);
-    const book = bookController.checkBookExists(book_id);
-    return this.getAuthorByKey(book.author_id);
-  }
+    let book = await bookController.checkBookExists(book_id);
+    try {
+      return await this.getAuthorByKey(book.author_id);
+    } catch (err) {
+      throw err;
+    }
+  }*/
+
   async researchAuthor(query) {
     if (query !== "" && isNaN(parseInt(query))) {
       try {
@@ -167,24 +170,21 @@ class AuthorController {
         console.error("Erreur lors de la recherche de l'auteur : " + err.message);
         throw err;
       }
-    } else {
-      console.error("query non valide");
-      throw new Error("query non valide");
     }
   }
-  async createAuthor(nom, prenom) {
-    nom = nom.trim();
-    prenom = prenom.trim();
-    if (!this.isCorrect(nom)) {
+  async createAuthor(name, firstName) {
+    name = name.trim();
+    firstName = firstName.trim();
+    if (!this.isCorrect(name)) {
       throw new Error("la valeur du champ nom est incorrecte");
     }
-    if (!this.isCorrect(prenom)) {
+    if (!this.isCorrect(firstName)) {
       throw new Error("la valeur du champ prenom est incorrecte");
     }
     try {
       const author = {
-        nom: nom,
-        prenom: prenom
+        name: name,
+        firstName: firstName
       };
       return await authorModel.createAuthor(author);
     } catch (err) {
@@ -192,50 +192,43 @@ class AuthorController {
       throw err;
     }
   }
-  async updateAuthor(key, nom, prenom) {
+  async updateAuthor(key, name, firstName) {
     this.validateKey(key);
-    await this.checkAuthorExists(key);
+    await this.getAuthorByKey(key);
     let update = {
-      nom: nom,
-      prenom: prenom
+      name: name,
+      firstName: firstName
     };
-    if (!nom) {
+    if (!name) {
       update = {
-        prenom: prenom
+        firstName: firstName
       };
     }
-    if (!prenom) {
+    if (!firstName) {
       update = {
-        nom: nom
+        name: name
       };
     }
-    if (!this.isCorrect(nom)) {
+    if (!this.isCorrect(name)) {
       throw new Error("la valeur du champ nom est incorrecte");
     }
-    if (!this.isCorrect(prenom)) {
-      throw new Error("la valeur du champ prenom est incorrecte");
+    if (!this.isCorrect(firstName)) {
+      throw new Error("la valeur du champ prenoms est incorrecte");
     }
     try {
       return await authorModel.updateAuthor(key, update);
     } catch (err) {
-      console.error("Erreur du modèle lors de la mise à jour: " + err.message);
+      //console.error("Erreur du modèle lors de la mise à jour: " + err.message);
       throw err;
     }
   }
   async deleteAuthor(key) {
     this.validateKey(key);
-    const resultat = await this.checkAuthorExists(key);
-    if (resultat === null) {
-      throw new Error("L'auteur n'existe pas!");
-    }
-    const authors = await bookController.getBookByAuthor(key);
-    if (Array.isArray(authors) && authors.length !== 0) {
-      throw new Error("Suppression impossible! Cet auteur est lié à au moins un livre");
-    }
+    await this.getAuthorByKey(key);
     try {
       return await authorModel.deleteAuthor(key);
     } catch (err) {
-      console.error("Erreur de suppression : " + err.message);
+      //console.error("Erreur de suppression : " + err.message);
       throw err;
     }
   }
@@ -246,18 +239,6 @@ class AuthorController {
   }
   isCorrect(value) {
     return value !== "" && isNaN(parseInt(value));
-  }
-  async checkAuthorExists(key) {
-    let author;
-    try {
-      author = await authorModel.getAuthorByKey(key);
-    } catch {
-      author = null;
-    }
-    if (!author) {
-      throw new Error("l'auteur n'existe pas");
-    }
-    return author;
   }
 }
 module.exports = new AuthorController();
@@ -277,8 +258,6 @@ module.exports = new AuthorController();
  */
 
 const bookModel = __webpack_require__(/*! ../models/book_model */ "./models/book_model.js");
-const authorModel = __webpack_require__(/*! ../models/author_model */ "./models/author_model.js");
-const authorController = __webpack_require__(/*! ./author_controller */ "./controllers/author_controller.js");
 class BookController {
   constructor() {}
   async getBooks() {
@@ -287,6 +266,7 @@ class BookController {
       return books;
     } catch (error) {
       console.error("Erreur lors de la récupération des libres: " + error.message);
+      throw error;
     }
   }
   async getBookByKey(key) {
@@ -294,30 +274,28 @@ class BookController {
     try {
       return await bookModel.getBookByKey(key);
     } catch (error) {
-      throw JSON.stringify(error);
+      throw error;
     }
   }
   async getBookByISBN(isbn) {
     try {
       return await bookModel.getBookByISBN(isbn);
     } catch (error) {
-      throw JSON.stringify(error);
+      throw error;
     }
   }
   async getBookByAuthor(author_id) {
     this.validateKey(author_id);
-    await checkAuthorExists(author_id);
     try {
-      return bookModel.getBookbyAuthor(author_id);
+      return await bookModel.getBookbyAuthor(author_id);
     } catch (err) {
-      console.error("Erreur de récuperation : " + err);
       throw err;
     }
   }
-  getBooksWrittenAt(date) {
+  async getBooksWrittenAt(date) {
     if (date !== "") {
       try {
-        return bookModel.getBooksWrittenAt(date);
+        return await bookModel.getBooksWrittenAt(date);
       } catch (err) {
         console.error("Erreur de récuperation : " + err);
         throw err;
@@ -332,26 +310,16 @@ class BookController {
     const results = await bookModel.researchBook(query);
     return results;
   }
-  async createBook(isbn, title, oeuvre, page, author_id) {
+  async createBook(isbn, title, artwork, page, author_id) {
     isbn = isbn.trim();
     title = title.trim();
-    oeuvre = oeuvre.trim();
-    this.validateField(isbn.trim(), title.trim(), oeuvre, page);
+    artwork = artwork.trim();
+    this.validateField(isbn, title, artwork, page);
     const existingBook = await this.getBookByISBN(isbn);
     if (existingBook) {
       throw new Error("Ce livre existe déjà!");
     }
-    if (author_id !== "") {
-      let author;
-      try {
-        author = await getAuthorByKey(author_id);
-      } catch {
-        author = null;
-      }
-      if (!author) {
-        throw new Error("Cet auteur n'existe pas!");
-      }
-    } else {
+    if (author_id === "") {
       throw new Error("la valeur champ book est vide!");
     }
     const date = new Date();
@@ -361,7 +329,7 @@ class BookController {
       const book = {
         ISBN: isbn,
         title: title,
-        oeuvre: oeuvre,
+        artwork: artwork,
         page: page,
         author_id: author_id,
         writtenAt: writtenAt
@@ -372,9 +340,9 @@ class BookController {
       throw err;
     }
   }
-  async updateBook(key, title, oeuvre, page) {
+  async updateBook(key, title, artwork, page) {
     this.validateKey(key);
-    await this.checkBookExists(key);
+    await this.getBookByKey(key);
     let updatedata = {};
     if (title) {
       if (!this.isCorrect(title)) {
@@ -382,11 +350,11 @@ class BookController {
       }
       updatedata.title = title;
     }
-    if (oeuvre) {
-      if (!this.isCorrect(oeuvre)) {
+    if (artwork) {
+      if (!this.isCorrect(artwork)) {
         throw new Error("la valeur de l'oeuvre est incorrecte");
       }
-      updatedata.oeuvre = oeuvre;
+      updatedata.artwork = artwork;
     }
     if (page) {
       if (page === "" || isNaN(parseInt(page))) {
@@ -403,8 +371,7 @@ class BookController {
   }
   async deleteBook(key) {
     this.validateKey(key);
-    await this.checkBookExists(key);
-    console.log(8);
+    await this.getBookByKey(key);
     try {
       return await bookModel.deleteBook(key);
     } catch (err) {
@@ -415,17 +382,18 @@ class BookController {
   isCorrect(valeur) {
     return valeur !== "" && isNaN(parseInt(valeur));
   }
-  validateField(isbn, title, oeuvre, page) {
+  validateField(isbn, title, artwork, page) {
     if (isbn === "") {
       throw new Error("la valeur du ISBN est incorrecte");
     }
     if (!this.isCorrect(title)) {
       throw new Error("la valeur du champ title est incorrecte");
     }
-    if (!this.isCorrect(oeuvre)) {
+    if (!this.isCorrect(artwork)) {
       throw new Error("la valeur du champ oeuvre est incorrecte");
     }
-    if (page === "" || isNaN(page)) {
+    if (Number.isInteger(parseInt(page)) || page === 0 || isNaN(page)) {
+      console.log(" .  . . .");
       throw new Error("la valeur du champ page est incorrecte");
     }
   }
@@ -433,18 +401,6 @@ class BookController {
     if (key === "" && isNaN(parseInt(key))) {
       throw new Error("la clé n'est pas valide");
     }
-  }
-  async checkBookExists(key) {
-    let book;
-    try {
-      book = await bookModel.getBookByKey(key);
-    } catch {
-      book = null;
-    }
-    if (!book) {
-      throw new Error("le livre n'existe pas");
-    }
-    return book;
   }
 }
 module.exports = new BookController();
@@ -472,7 +428,7 @@ class AuthorModel {
     return await authorCollection.document(key);
   }
   async researchAuthor(researchQuery) {
-    const query = await db.query(`FOR author IN authors FILTER author.nom LIKE '%${researchQuery}%' OR author.prenom LIKE '%${researchQuery}%' RETURN author`);
+    const query = await db.query(`FOR author IN authors FILTER author.name LIKE '%${researchQuery}%' OR author.firstName LIKE '%${researchQuery}%' RETURN author`);
     return query.all();
   }
   async createAuthor(author) {
@@ -528,7 +484,7 @@ class BookModel {
     return query.all();
   }
   async researchBook(researchQuery) {
-    const query = await db.query(`FOR book IN books FILTER book.title LIKE '%${researchQuery}%' OR book.oeuvre LIKE '%${researchQuery}%' OR book.ISDN LIKE '%${researchQuery}%' RETURN book`);
+    const query = await db.query(`FOR book IN books FILTER book.title LIKE '%${researchQuery}%' OR book.artwork LIKE '%${researchQuery}%' OR book.ISDN LIKE '%${researchQuery}%' RETURN book`);
     return query.all();
   }
   async createBook(book) {
@@ -877,25 +833,22 @@ const resolvers = {
     }) => bookController.researchBook(query),
     authorsBooks: (_, {
       author_id
-    }) => bookController.getBooksByAuthor(author_id),
+    }) => bookController.getBookByAuthor(author_id),
     booksAuthor: (_, {
       book_id
-    }) => authorController.getBookAuthor(book_id),
-    bookisbn: (_, {
-      isbn
-    }) => __webpack_require__(/*! ../models/book_model */ "./models/book_model.js").default.getBookByISBN(isbn)
+    }) => authorController.getBookAuthor(book_id)
   },
   Mutation: {
     //author
     createAuthor: (_, {
-      nom,
-      prenom
-    }) => authorController.createAuthor(nom, prenom),
+      name,
+      firstName
+    }) => authorController.createAuthor(name, firstName),
     updateAuthor: (_, {
       key,
-      nom,
-      prenom
-    }) => authorController.updateAuthor(key, nom, prenom),
+      name,
+      firstName
+    }) => authorController.updateAuthor(key, name, firstName),
     deleteAuthor: (_, {
       key
     }) => authorController.deleteAuthor(key),
@@ -930,8 +883,8 @@ const resolvers = {
 /***/ (function(module, exports) {
 
 
-    var doc = {"kind":"Document","definitions":[{"kind":"ObjectTypeDefinition","name":{"kind":"Name","value":"Author"},"interfaces":[],"directives":[],"fields":[{"kind":"FieldDefinition","name":{"kind":"Name","value":"_id"},"arguments":[],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"nom"},"arguments":[],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"prenom"},"arguments":[],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]}]},{"kind":"ObjectTypeDefinition","name":{"kind":"Name","value":"Book"},"interfaces":[],"directives":[],"fields":[{"kind":"FieldDefinition","name":{"kind":"Name","value":"_id"},"arguments":[],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"ISBN"},"arguments":[],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"title"},"arguments":[],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"oeuvre"},"arguments":[],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"page"},"arguments":[],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"author_id"},"arguments":[],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"writtenAt"},"arguments":[],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]}]},{"kind":"ObjectTypeDefinition","name":{"kind":"Name","value":"Query"},"interfaces":[],"directives":[],"fields":[{"kind":"FieldDefinition","name":{"kind":"Name","value":"authors"},"arguments":[],"type":{"kind":"NonNullType","type":{"kind":"ListType","type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Author"}}}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"author"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"key"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}},"directives":[]}],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Author"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"researchAuthor"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"query"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]}],"type":{"kind":"NonNullType","type":{"kind":"ListType","type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Author"}}}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"books"},"arguments":[],"type":{"kind":"NonNullType","type":{"kind":"ListType","type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Book"}}}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"book"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"key"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}},"directives":[]}],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Book"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"bookisbn"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"isbn"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}},"directives":[]}],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Book"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"researchBook"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"query"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]}],"type":{"kind":"ListType","type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Book"}}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"authorsBooks"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"author_id"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}},"directives":[]}],"type":{"kind":"NonNullType","type":{"kind":"ListType","type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Book"}}}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"booksAuthor"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"book_id"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}},"directives":[]}],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Author"}}},"directives":[]}]},{"kind":"ObjectTypeDefinition","name":{"kind":"Name","value":"Mutation"},"interfaces":[],"directives":[],"fields":[{"kind":"FieldDefinition","name":{"kind":"Name","value":"createAuthor"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"nom"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"prenom"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]}],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Author"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"updateAuthor"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"key"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"nom"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"prenom"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]}],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Author"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"deleteAuthor"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"key"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}},"directives":[]}],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"createBook"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"isbn"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"title"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"oeuvre"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"page"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"author_id"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]}],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Book"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"updateBook"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"key"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"title"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"oeuvre"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"page"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}},"directives":[]}],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Book"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"deleteBook"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"key"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}},"directives":[]}],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]}]}],"loc":{"start":0,"end":1013}};
-    doc.loc.source = {"body":"#Author\r\ntype Author {\r\n  _id: ID!\r\n  nom: String!\r\n  prenom: String!\r\n  #books: [Book]\r\n}\r\n\r\n#book\r\ntype Book {\r\n  _id: ID!\r\n  ISBN: ID!\r\n  title: String!\r\n  oeuvre: String!\r\n  page: Int!\r\n  author_id: String!\r\n  writtenAt: String!\r\n}\r\n\r\n#Query\r\ntype Query {\r\n  #author\r\n  authors: [Author!]!\r\n  author(key: ID!): Author!\r\n  researchAuthor(query: String!): [Author!]!\r\n\r\n  #book\r\n  books: [Book!]!\r\n  book(key: ID): Book!\r\n  bookisbn(isbn: ID): Book!\r\n  researchBook(query: String!): [Book!]\r\n\r\n  authorsBooks(author_id: ID!): [Book!]!\r\n  booksAuthor(book_id: ID!): Author!\r\n}\r\n\r\ntype Mutation {\r\n  #Auteur\r\n  createAuthor(nom: String!, prenom: String!): Author!\r\n  updateAuthor(key: ID!, nom: String, prenom: String): Author!\r\n  deleteAuthor(key: ID!): String!\r\n\r\n  #book\r\n  createBook(\r\n    isbn: String!\r\n    title: String!\r\n    oeuvre: String!\r\n    page: Int!\r\n    author_id: String!\r\n  ): Book!\r\n\r\n  updateBook(key: ID!, title: String, oeuvre: String, page: Int): Book!\r\n  deleteBook(key: ID!): String!\r\n}\r\n","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+    var doc = {"kind":"Document","definitions":[{"kind":"ObjectTypeDefinition","name":{"kind":"Name","value":"Author"},"interfaces":[],"directives":[],"fields":[{"kind":"FieldDefinition","name":{"kind":"Name","value":"_id"},"arguments":[],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"name"},"arguments":[],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"firstName"},"arguments":[],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]}]},{"kind":"ObjectTypeDefinition","name":{"kind":"Name","value":"Book"},"interfaces":[],"directives":[],"fields":[{"kind":"FieldDefinition","name":{"kind":"Name","value":"_id"},"arguments":[],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"ISBN"},"arguments":[],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"title"},"arguments":[],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"artwork"},"arguments":[],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"page"},"arguments":[],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"author_id"},"arguments":[],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"writtenAt"},"arguments":[],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]}]},{"kind":"ObjectTypeDefinition","name":{"kind":"Name","value":"Query"},"interfaces":[],"directives":[],"fields":[{"kind":"FieldDefinition","name":{"kind":"Name","value":"authors"},"arguments":[],"type":{"kind":"NonNullType","type":{"kind":"ListType","type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Author"}}}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"author"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"key"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}},"directives":[]}],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Author"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"researchAuthor"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"query"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]}],"type":{"kind":"NonNullType","type":{"kind":"ListType","type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Author"}}}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"books"},"arguments":[],"type":{"kind":"NonNullType","type":{"kind":"ListType","type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Book"}}}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"book"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"key"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}},"directives":[]}],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Book"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"researchBook"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"query"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]}],"type":{"kind":"ListType","type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Book"}}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"authorsBooks"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"author_id"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}},"directives":[]}],"type":{"kind":"NonNullType","type":{"kind":"ListType","type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Book"}}}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"booksAuthor"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"book_id"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}},"directives":[]}],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Author"}}},"directives":[]}]},{"kind":"ObjectTypeDefinition","name":{"kind":"Name","value":"Mutation"},"interfaces":[],"directives":[],"fields":[{"kind":"FieldDefinition","name":{"kind":"Name","value":"createAuthor"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"name"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"firstName"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]}],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Author"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"updateAuthor"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"key"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"name"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"firstName"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]}],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Author"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"deleteAuthor"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"key"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}},"directives":[]}],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"createBook"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"isbn"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"title"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"artwork"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"page"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"author_id"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]}],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Book"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"updateBook"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"key"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"title"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"artwork"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"page"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}},"directives":[]}],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Book"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"deleteBook"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"key"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}},"directives":[]}],"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]}]}],"loc":{"start":0,"end":999}};
+    doc.loc.source = {"body":"#Author\r\ntype Author {\r\n  _id: ID!\r\n  name: String!\r\n  firstName: String!\r\n  #books: [Book]\r\n}\r\n\r\n#book\r\ntype Book {\r\n  _id: ID!\r\n  ISBN: ID!\r\n  title: String!\r\n  artwork: String!\r\n  page: Int!\r\n  author_id: String!\r\n  writtenAt: String!\r\n}\r\n\r\n#Query\r\ntype Query {\r\n  #author\r\n  authors: [Author!]!\r\n  author(key: ID!): Author!\r\n  researchAuthor(query: String!): [Author!]!\r\n\r\n  #book\r\n  books: [Book!]!\r\n  book(key: ID): Book!\r\n  researchBook(query: String!): [Book!]\r\n\r\n  authorsBooks(author_id: ID!): [Book!]!\r\n  booksAuthor(book_id: ID!): Author!\r\n}\r\n\r\ntype Mutation {\r\n  #Auteur\r\n  createAuthor(name: String!, firstName: String!): Author!\r\n  updateAuthor(key: ID!, name: String, firstName: String): Author!\r\n  deleteAuthor(key: ID!): String!\r\n\r\n  #book\r\n  createBook(\r\n    isbn: String!\r\n    title: String!\r\n    artwork: String!\r\n    page: Int!\r\n    author_id: String!\r\n  ): Book!\r\n\r\n  updateBook(key: ID!, title: String, artwork: String, page: Int): Book!\r\n  deleteBook(key: ID!): String!\r\n}\r\n","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
   
 
     var names = {};

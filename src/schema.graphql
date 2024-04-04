@@ -27,11 +27,10 @@ type Query {
   #book
   books: [Book!]!
   book(key: ID): Book!
-  bookisbn(isbn: ID): Book!
   researchBook(query: String!): [Book!]
 
   authorsBooks(author_id: ID!): [Book!]!
-  booksAuthor(book_id: ID!): Author!
+  #booksAuthor(book_id: ID!): Author!
 }
 
 type Mutation {

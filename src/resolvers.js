@@ -15,11 +15,8 @@ const resolvers = {
     researchBook: (_, { query }) => bookController.researchBook(query),
 
     authorsBooks: (_, { author_id }) =>
-      bookController.getBooksByAuthor(author_id),
-    booksAuthor: (_, { book_id }) => authorController.getBookAuthor(book_id),
-
-    bookisbn: (_, { isbn }) =>
-      require("../models/book_model").default.getBookByISBN(isbn),
+      bookController.getBookByAuthor(author_id),
+    //booksAuthor: (_, { book_id }) => authorController.getBookAuthor(book_id),
   },
 
   Mutation: {

@@ -27,12 +27,14 @@ class BookModel {
     );
     return query.all();
   }
+
   async getBooksWrittenAt(date) {
-  const query = await db.query(
+    const query = await db.query(
       `FOR book IN books FILTER book.author_id LIKE "%${date}%" RETURN book`
     );
     return query.all();
-}
+  }
+
   async researchBook(researchQuery) {
     const query = await db.query(
       `FOR book IN books FILTER book.title LIKE '%${researchQuery}%' OR book.artwork LIKE '%${researchQuery}%' OR book.ISDN LIKE '%${researchQuery}%' RETURN book`

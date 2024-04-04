@@ -4,8 +4,6 @@
  */
 
 const bookModel = require("../models/book_model");
-const authorModel = require("../models/author_model");
-const authorController = require("./author_controller");
 
 class BookController {
   constructor() {}
@@ -18,6 +16,7 @@ class BookController {
       console.error(
         "Erreur lors de la récupération des libres: " + error.message
       );
+      throw error;
     }
   }
 
@@ -26,7 +25,7 @@ class BookController {
     try {
       return await bookModel.getBookByKey(key);
     } catch (error) {
-      throw JSON.stringify(error);
+      throw error;
     }
   }
 
@@ -34,25 +33,23 @@ class BookController {
     try {
       return await bookModel.getBookByISBN(isbn);
     } catch (error) {
-      throw JSON.stringify(error);
+      throw error;
     }
   }
 
   async getBookByAuthor(author_id) {
     this.validateKey(author_id);
-    await checkAuthorExists(author_id);
     try {
-      return bookModel.getBookbyAuthor(author_id);
+      return await bookModel.getBookbyAuthor(author_id);
     } catch (err) {
-      console.error("Erreur de récuperation : " + err);
       throw err;
     }
   }
 
-  getBooksWrittenAt(date) {
+  async getBooksWrittenAt(date) {
     if (date !== "") {
       try {
-        return bookModel.getBooksWrittenAt(date);
+        return await bookModel.getBooksWrittenAt(date);
       } catch (err) {
         console.error("Erreur de récuperation : " + err);
         throw err;
@@ -73,22 +70,12 @@ class BookController {
     isbn = isbn.trim();
     title = title.trim();
     artwork = artwork.trim();
-    this.validateField(isbn.trim(), title.trim(), artwork, page);
+    this.validateField(isbn, title, artwork, page);
     const existingBook = await this.getBookByISBN(isbn);
     if (existingBook) {
       throw new Error("Ce livre existe déjà!");
     }
-    if (author_id !== "") {
-      let author;
-      try {
-        author = await getAuthorByKey(author_id);
-      } catch {
-        author = null;
-      }
-      if (!author) {
-        throw new Error("Cet auteur n'existe pas!");
-      }
-    } else {
+    if (author_id === "") {
       throw new Error("la valeur champ book est vide!");
     }
     const date = new Date();
@@ -112,7 +99,7 @@ class BookController {
 
   async updateBook(key, title, artwork, page) {
     this.validateKey(key);
-    await this.checkBookExists(key);
+    await this.getBookByKey(key);
     let updatedata = {};
     if (title) {
       if (!this.isCorrect(title)) {
@@ -143,8 +130,7 @@ class BookController {
 
   async deleteBook(key) {
     this.validateKey(key);
-    await this.checkBookExists(key);
-    console.log(8);
+    await this.getBookByKey(key);
     try {
       return await bookModel.deleteBook(key);
     } catch (err) {
@@ -167,7 +153,8 @@ class BookController {
     if (!this.isCorrect(artwork)) {
       throw new Error("la valeur du champ oeuvre est incorrecte");
     }
-    if (page === "" || isNaN(page)) {
+    if (Number.isInteger(parseInt(page)) || page === 0 || isNaN(page)) {
+      console.log(" .  . . .");
       throw new Error("la valeur du champ page est incorrecte");
     }
   }
@@ -178,18 +165,6 @@ class BookController {
     }
   }
 
-  async checkBookExists(key) {
-    let book;
-    try {
-      book = await bookModel.getBookByKey(key);
-    } catch {
-      book = null;
-    }
-    if (!book) {
-      throw new Error("le livre n'existe pas");
-    }
-    return book;
-  }
 }
 
 module.exports = new BookController();

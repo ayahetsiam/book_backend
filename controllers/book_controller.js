@@ -11,6 +11,9 @@ class BookController {
   async getBooks() {
     try {
       const books = await bookModel.getBooks();
+      books.forEach((book) => {
+        book.author;
+      });
       return books;
     } catch (error) {
       console.error(
@@ -67,9 +70,9 @@ class BookController {
   }
 
   async createBook(isbn, title, artwork, page, author_id) {
-    isbn = isbn.trim();
-    title = title.trim();
-    artwork = artwork.trim();
+    isbn = isbn;
+    title = title;
+    artwork = artwork;
     this.validateField(isbn, title, artwork, page);
     const existingBook = await this.getBookByISBN(isbn);
     if (existingBook) {
@@ -80,14 +83,13 @@ class BookController {
     }
     const date = new Date();
     const writtenAt = date.toUTCString();
-    console.log(writtenAt);
     try {
       const book = {
         ISBN: isbn,
         title: title,
         artwork: artwork,
         page: page,
-        author_id: author_id,
+        author: author_id,
         writtenAt: writtenAt,
       };
       return await bookModel.createBook(book);
@@ -153,8 +155,8 @@ class BookController {
     if (!this.isCorrect(artwork)) {
       throw new Error("la valeur du champ oeuvre est incorrecte");
     }
-    if (Number.isInteger(parseInt(page)) || page === 0 || isNaN(page)) {
-      console.log(" .  . . .");
+
+    if (isNaN(page) || page === 0) {
       throw new Error("la valeur du champ page est incorrecte");
     }
   }
@@ -164,7 +166,6 @@ class BookController {
       throw new Error("la clé n'est pas valide");
     }
   }
-
 }
 
 module.exports = new BookController();

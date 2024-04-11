@@ -23,14 +23,14 @@ class BookModel {
 
   async getBookbyAuthor(author_id) {
     const query = await db.query(
-      `FOR book IN books FILTER book.author_id == "${author_id}" RETURN book`
+      `FOR book IN books FILTER book.author == "${author_id}" RETURN book`
     );
     return query.all();
   }
 
   async getBooksWrittenAt(date) {
     const query = await db.query(
-      `FOR book IN books FILTER book.author_id LIKE "%${date}%" RETURN book`
+      `FOR book IN books FILTER book.writtenAt LIKE "%${date}%" RETURN book`
     );
     return query.all();
   }

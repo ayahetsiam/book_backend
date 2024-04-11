@@ -1,7 +1,7 @@
 const { Database } = require("arangojs");
 
 const db = new Database({
-  url: "http://localhost:8529/",
+  url: "http://localhost:8529",
   databaseName: "livreDB",
   auth: {
     username: "root",

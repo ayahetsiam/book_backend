@@ -13,7 +13,7 @@ type Book {
   title: String!
   artwork: String!
   page: Int!
-  author_id: String!
+  author: String!
   writtenAt: String!
 }
 
